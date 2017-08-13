@@ -13,7 +13,8 @@
   ],
   "auth": "github:gfldex",
   "depends": [
-    "Test::META"
+    "Test::META",
+    "WWW"
   ],
   "tags": [
     
@@ -30,6 +31,6 @@
   "authors": [
     "Wenzel P. P. Peppmeyer <wenzel.peppmeyer@gmx.de>"
   ],
-  "description": "",
+  "description": "Provide bindings for ⟨http://www.radio-browser.info/webservice⟩.",
   "meta6": "0"
 }
