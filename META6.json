@@ -1,0 +1,35 @@
+{
+  "name": "WWW::RadioBrowser",
+  "source-url": "https://github.com/gfldex/perl6-www-radiobrowser.git",
+  "support": {
+    "source": null
+  },
+  "perl": "6.c",
+  "resources": [
+    
+  ],
+  "build-depends": [
+    
+  ],
+  "auth": "github:gfldex",
+  "depends": [
+    "Test::META"
+  ],
+  "tags": [
+    
+  ],
+  "license": "Artistic 2.0",
+  "test-depends": [
+    
+  ],
+  "provides": {
+    
+  },
+  "production": false,
+  "version": "0.0.1",
+  "authors": [
+    "Wenzel P. P. Peppmeyer <wenzel.peppmeyer@gmx.de>"
+  ],
+  "description": "",
+  "meta6": "0"
+}
