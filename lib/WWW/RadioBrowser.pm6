@@ -74,10 +74,9 @@ my %type-map =
     lastcheckoktime => { .Bool ?? DateTime.new(.subst(' ', 'T') ~ 'Z', :formatter(&ISO8601)) !! DateTime },
     clicktrend => Int,
     lastcheckok => Bool,
-    negativevotes => Int,
     tags => { .split(',') },
     lastchecktime => { .Bool ?? DateTime.new(.subst(' ', 'T') ~ 'Z', :formatter(&ISO8601)) !! DateTime },
-    id => Int;
+    stationuuid => Int;
 
 sub internet-radio-stations-update(:$schema = 'http', Int :$limit = 100000) is export {
     my $cache-time = (try „$cfg-dir/stations.json“.IO.modified.DateTime) // now.DateTime.new(0);
@@ -87,7 +86,7 @@ sub internet-radio-stations-update(:$schema = 'http', Int :$limit = 100000) is e
         change-state fetching;
         note "fetching all unbroken stations";
         
-        @stations = | jpost "$schema://www.radio-browser.info/webservice/json/stations", {User-Agent => 'https://github.com/gfldex/perl6-www-radiobrowser'}, :$limit;
+        @stations = | jpost "$schema://de1.api.radio-browser.info/json/stations", {User-Agent => 'https://github.com/gfldex/perl6-www-radiobrowser'}, :$limit;
         my $stations-count = +@stations;
 
         change-state processing;
@@ -106,10 +105,9 @@ sub internet-radio-stations-update(:$schema = 'http', Int :$limit = 100000) is e
             .<lastcheckoktime> = .<lastcheckoktime> ?? DateTime.new(.<lastcheckoktime>.subst(' ', 'T') ~ 'Z', :formatter(&ISO8601)) !! DateTime; 
             .<clicktrend> = .<clicktrend>.Int;
             .<lastcheckok> = .<lastcheckok>.Int.Bool;
-            .<negativevotes> = .<negativevotes>.Int;
             .<tags> = .<tags>.split(',');
             .<lastchecktime> = .<lastchecktime> ?? DateTime.new(.<lastchecktime>.subst(' ', 'T') ~ 'Z', :formatter(&ISO8601)) !! DateTime; 
-            .<id> = .<id>.Int;
+            .<stationuuid> = .<stationuuid>.Int;
             
             internet-radio-batch-progress.emit: 1000 if $++ %% 1000;
 
@@ -157,10 +155,9 @@ sub internet-radio-stations-update(:$schema = 'http', Int :$limit = 100000) is e
                 .AT-KEY(‚lastcheckoktime‘) = .AT-KEY(‚lastcheckoktime‘) ?? DateTime.new(.AT-KEY(‚lastcheckoktime‘), :formatter(&ISO8601)) !! DateTime; 
                 .AT-KEY(‚clicktrend‘) = .AT-KEY(‚clicktrend‘).Int;
                 .AT-KEY(‚lastcheckok‘) = .AT-KEY(‚lastcheckok‘).Int.Bool;
-                .AT-KEY(‚negativevotes‘) = .AT-KEY(‚negativevotes‘).Int;
                 # .AT-KEY(‚tags‘) = .AT-KEY(‚tags‘).split(',');
                 .AT-KEY(‚lastchecktime‘) = .AT-KEY(‚lastchecktime‘) ?? DateTime.new(.AT-KEY(‚lastchecktime‘), :formatter(&ISO8601)) !! DateTime; 
-                .AT-KEY(‚id‘) = .AT-KEY(‚id‘).Int;
+                .AT-KEY(‚stationuuid‘) = .AT-KEY(‚stationuuid‘).Int;
 
                 internet-radio-batch-progress.emit: 1000 if $++ %% 1000;
 
@@ -181,12 +178,12 @@ sub internet-radio-stations-update(:$schema = 'http', Int :$limit = 100000) is e
         note [ ‚total:‘, +@stations, ‚deleted:‘, +@deleted-stations, ‚changed:‘, +@updated-stations ];
 
         if +@deleted-stations | +@updated-stations {
-            my Set $d-s-ids = @deleted-stations».<id>.Set;
-            my Set $u-s-ids = @updated-stations».<id>.Set;
+            my Set $d-s-ids = @deleted-stations».<stationuuid>.Set;
+            my Set $u-s-ids = @updated-stations».<stationuuid>.Set;
             my Set $to-be-removed-stations = $d-s-ids ∩ $u-s-ids;
             @stations = @stations.grep({
                 my $station = .item;
-                my $ret = .<id>.Int ∉ $to-be-removed-stations;
+                my $ret = .<stationuuid>.Int ∉ $to-be-removed-stations;
                 CATCH { default { 
                     note .^name, ': ', .Str;
                     exit 0
@@ -196,7 +193,7 @@ sub internet-radio-stations-update(:$schema = 'http', Int :$limit = 100000) is e
             });
             note ‚after delete: ‘, +@stations;
 
-            # dd @stations.grep({say .<id>; .<id>.Int ∈ $to-be-removed-stations});
+            # dd @stations.grep({say .<stationuuid>; .<stationuuid>.Int ∈ $to-be-removed-stations});
             # dd $to-be-removed-stations;
 
             @stations.append(|@updated-stations);
@@ -218,12 +215,12 @@ sub internet-radio-stations-update(:$schema = 'http', Int :$limit = 100000) is e
 
 multi sub internet-radio-stations-deleted(:$schema = 'http', DateTime :$since = now.DateTime.earlier(:30days)) is export {
     note "fetching deleted stations";
-    my \v = jpost "$schema://www.radio-browser.info/webservice/json/stations/deleted", {User-Agent => 'https://github.com/gfldex/perl6-www-radiobrowser'}
+    my \v = jpost "$schema://de1.api.radio-browser.info/json/stations/deleted", {User-Agent => 'https://github.com/gfldex/perl6-www-radiobrowser'}
     note "processing deleted stations";
     v.hyper.map: { 
         .<lastchangetime> = DateTime.new: .<lastchangetime>.subst(' ', 'T') ~ 'Z'; 
-        .<changeid> = .<changeid>.Int;
-        .<id> = .<changeid>.Int;
+        .<changeuuid> = .<changeuuid>.Int;
+        .<stationuuid> = .<changeuuid>.Int;
         .Hash
     };
     v.grep: { .<lastchangetime> > $since }
@@ -235,7 +232,7 @@ multi sub internet-radio-stations-deleted(:$schema = 'http', :$age) is export {
 
 multi sub internet-radio-stations-changed(:$schema = 'http', DateTime :$since) is export {
     note "fetching changed stations";
-    my \v = jpost "$schema://www.radio-browser.info/webservice/json/stations/lastchange", {User-Agent => 'https://github.com/gfldex/perl6-www-radiobrowser'};
+    my \v = jpost "$schema://de1.api.radio-browser.info/json/stations/lastchange", {User-Agent => 'https://github.com/gfldex/perl6-www-radiobrowser'};
     note "processing changed stations";
     v.hyper.map: { 
         .<lastchangetime> = .<lastchangetime> ?? DateTime.new: .<lastchangetime>.subst(' ', 'T') ~ 'Z' !! DateTime; 
@@ -246,10 +243,9 @@ multi sub internet-radio-stations-changed(:$schema = 'http', DateTime :$since) i
         .<lastcheckoktime> = .<lastcheckoktime> ?? DateTime.new: .<lastcheckoktime>.subst(' ', 'T') ~ 'Z' !! DateTime; 
         .<clicktrend> = .<clicktrend>.Int;
         .<lastcheckok> = .<lastcheckok>.Int.Bool;
-        .<negativevotes> = .<negativevotes>.Int;
         .<tags> = .<tags>.split(',');
         .<lastchecktime> = .<lastchangetime> ?? DateTime.new: .<lastchecktime>.subst(' ', 'T') ~ 'Z' !! DateTime; 
-        .<id> = .<id>.Int;
+        .<stationuuid> = .<stationuuid>.Int;
         .Hash
     };
     v.grep: { .<lastchangetime> > $since }
